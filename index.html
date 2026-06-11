@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>L'Échappée - Horreur Psychologique</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+
+        <!-- Crosshair -->
+        <div id="crosshair"></div>
+
+        <!-- UI: Sidebar -->
+        <div id="sidebar" class="sidebar hidden">
+            <button id="toggle-sidebar">FERMER</button>
+            <h2>Inventaire</h2>
+            <div id="inventory-list"></div>
+            <div id="item-description">
+                <p id="desc-text">Sélectionnez un objet pour voir sa description.</p>
+            </div>
+        </div>
+        <button id="open-sidebar">Inventaire</button>
+
+        <!-- UI: Interactions -->
+        <div id="interaction-prompt">Appuyez sur [E] pour interagir</div>
+
+        <!-- UI: Menu / Start -->
+        <div id="overlay">
+            <div id="menu">
+                <h1>L'ÉCHAPPÉE</h1>
+                <p>Vous êtes enfermé. Trouvez la sortie... s'il y en a une.</p>
+                <button id="start-button">COMMENCER</button>
+                <div class="controls-info">
+                    <p>PC: ZQSD pour bouger, Souris pour regarder, E pour interagir</p>
+                    <p>MOBILE: Joystick gauche pour bouger, Glisser à droite pour regarder</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Joystick -->
+        <div id="joystick-zone">
+            <div id="joystick-base">
+                <div id="joystick-knob"></div>
+            </div>
+        </div>
+
+        <!-- Notification -->
+        <div id="notification"></div>
+
+        <!-- End Screen -->
+        <div id="end-screen" class="hidden">
+            <div>
+                <h2 id="end-title">FIN</h2>
+                <p id="end-message"></p>
+                <button id="restart-button">RECOMMENCER</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js CDN -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module" src="game.js"></script>
+</body>
+</html>
