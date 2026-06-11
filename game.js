@@ -76,8 +76,20 @@ function isMobile() { return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile
 
 startBtn.addEventListener('click', () => {
     initAudio();
-    if (isMobile()) overlay.classList.add('hidden');
-    else controls.lock();
+    overlay.classList.add('hidden');
+    if (!isMobile()) {
+        controls.lock();
+    }
+});
+
+controls.addEventListener('lock', () => {
+    overlay.classList.add('hidden');
+});
+
+controls.addEventListener('unlock', () => {
+    if (sidebar.classList.contains('hidden') && !gameState.gameEnded) {
+        overlay.classList.remove('hidden');
+    }
 });
 
 document.getElementById('open-sidebar').onclick = () => { sidebar.classList.remove('hidden'); if (!isMobile()) controls.unlock(); };
@@ -97,7 +109,6 @@ function createWall(w, h, pos, rot, isPhysical = true) {
     scene.add(wall);
 
     if (isPhysical) {
-        // Créer une boîte invisible pour la collision simplifiée
         const colGeo = new THREE.BoxGeometry(w, h, 0.1);
         const colMesh = new THREE.Mesh(colGeo, new THREE.MeshBasicMaterial({ visible: false }));
         colMesh.position.copy(wall.position);
@@ -114,12 +125,10 @@ function createRoom(name, w, d, pos, openings = {}) {
     floor.position.set(pos.x, pos.y, pos.z);
     floor.receiveShadow = true;
     scene.add(floor);
-
     const ceil = new THREE.Mesh(new THREE.PlaneGeometry(w, d), ceilingMat);
     ceil.rotation.x = Math.PI / 2;
     ceil.position.set(pos.x, pos.y + h, pos.z);
     scene.add(ceil);
-
     if (!openings.n) createWall(w, h, { x: pos.x, y: pos.y + h/2, z: pos.z - d/2 }, { x: 0, y: 0, z: 0 });
     if (!openings.s) createWall(w, h, { x: pos.x, y: pos.y + h/2, z: pos.z + d/2 }, { x: 0, y: Math.PI, z: 0 });
     if (!openings.e) createWall(d, h, { x: pos.x + w/2, y: pos.y + h/2, z: pos.z }, { x: 0, y: -Math.PI/2, z: 0 });
@@ -131,8 +140,6 @@ createRoom('Couloir', 4, 15, { x: 0, y: 0, z: -10.5 }, { s: true, n: true, e: tr
 createRoom('Bureau', 8, 8, { x: 6, y: 0, z: -10.5 }, { w: true });
 createRoom('Sous-sol', 10, 10, { x: -7, y: 0, z: -10.5 }, { e: true });
 
-// Indice visuel pour le code (1984) dans le couloir
-const hintSprite = new THREE.Group();
 const hintCanvas = document.createElement('canvas');
 const ctx = hintCanvas.getContext('2d');
 hintCanvas.width = 256; hintCanvas.height = 64;
@@ -255,12 +262,10 @@ function interact() {
     }
 }
 
-// Collision simple
 function checkCollision(nextPos) {
     const playerRadius = 0.5;
     for (let wall of walls) {
         const box = new THREE.Box3().setFromObject(wall);
-        // On gonfle la boîte par le rayon du joueur pour une collision simple
         box.expandByScalar(playerRadius);
         if (box.containsPoint(nextPos)) return true;
     }
@@ -274,17 +279,12 @@ function animate() {
         const fv = new THREE.Vector3(0, 0, Number(keys.s) - Number(keys.z));
         const sv = new THREE.Vector3(Number(keys.q) - Number(keys.d), 0, 0);
         if (isMobile() && window.joystickMove) { fv.z = window.joystickMove.y / 50; sv.x = -window.joystickMove.x / 50; }
-
         dir.subVectors(fv, sv).normalize().multiplyScalar(CONFIG.moveSpeed).applyQuaternion(camera.quaternion);
-        dir.y = 0; // Pas de vol
-
+        dir.y = 0;
         const nextPos = camera.position.clone().add(dir);
-        if (!checkCollision(nextPos)) {
-            camera.position.copy(nextPos);
-        }
+        if (!checkCollision(nextPos)) camera.position.copy(nextPos);
         camera.position.y = 1.6;
     }
-
     raycaster.setFromCamera(pointer, camera);
     const intersects = raycaster.intersectObjects(scene.children);
     interactableObject = null;
@@ -298,49 +298,41 @@ function animate() {
         }
     }
     if (!found) interactionPrompt.style.display = 'none';
-
     cellLight.intensity = 0.5 + Math.random() * 0.2;
     basementLight.intensity = 0.3 + Math.random() * 0.3;
     renderer.render(scene, camera);
 }
 
-// --- MOBILE (TOUCH LOOK + JOYSTICK) ---
+// --- MOBILE ---
 if (isMobile()) {
     const jz = document.getElementById('joystick-zone'), jb = document.getElementById('joystick-base'), jk = document.getElementById('joystick-knob');
     window.joystickMove = { x: 0, y: 0 };
     let moveStart = { x: 0, y: 0 };
     let lookStart = { x: 0, y: 0 };
     const euler = new THREE.Euler(0, 0, 0, 'YXZ');
-
     document.addEventListener('touchstart', (e) => {
         for (let touch of e.changedTouches) {
             if (touch.clientX < window.innerWidth / 2) {
-                // Joystick
                 moveStart = { x: touch.clientX, y: touch.clientY };
                 jb.style.display = 'block';
                 jb.style.left = `${moveStart.x - 50}px`;
                 jb.style.top = `${moveStart.y - 50}px`;
             } else {
-                // Look
                 lookStart = { x: touch.clientX, y: touch.clientY };
             }
         }
     });
-
     document.addEventListener('touchmove', (e) => {
         for (let touch of e.changedTouches) {
             if (touch.clientX < window.innerWidth / 2) {
-                // Move
                 const dx = touch.clientX - moveStart.x, dy = touch.clientY - moveStart.y;
                 const d = Math.sqrt(dx*dx + dy*dy), m = 50;
                 const rx = dx * Math.min(1, m/d), ry = dy * Math.min(1, m/d);
                 window.joystickMove = { x: rx, y: ry };
                 jk.style.transform = `translate(${rx}px, ${ry}px)`;
             } else {
-                // Look rotation
                 const dx = touch.clientX - lookStart.x, dy = touch.clientY - lookStart.y;
                 lookStart = { x: touch.clientX, y: touch.clientY };
-
                 euler.setFromQuaternion(camera.quaternion);
                 euler.y -= dx * 0.005;
                 euler.x -= dy * 0.005;
@@ -349,7 +341,6 @@ if (isMobile()) {
             }
         }
     });
-
     document.addEventListener('touchend', (e) => {
         for (let touch of e.changedTouches) {
             if (touch.clientX < window.innerWidth / 2) {
